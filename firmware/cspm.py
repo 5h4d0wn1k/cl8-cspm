@@ -233,28 +233,59 @@ class CSPMAuditor:
 def main():
     parser = argparse.ArgumentParser(description="CL8 — Multi-Cloud CSPM Posture Auditor")
     parser.add_argument("--assets", "-a", help="Path to unified asset JSON (uses demo if omitted)")
-    parser.add_argument("--output", "-o", help="Output CSV report path")
+    parser.add_argument("--output", "-o", default="", help="Output CSV report base path (also writes JSON)")
+    parser.add_argument("--exit-code-on-findings", action="store_true",
+                        help="Exit 2 when CRITICAL violations exist (CI-friendly)")
     args = parser.parse_args()
 
     assets = None
     if args.assets:
         try:
             with open(args.assets) as f:
-                assets = json.load(f)
+                loaded = json.load(f)
+            if isinstance(loaded, dict):
+                assets = loaded.get("assets", loaded.get("resources", []))
+            else:
+                assets = loaded
             print(f"Loaded assets from: {args.assets}")
         except Exception as e:
             print(f"ERROR: Could not load assets: {e}")
-            sys.exit(1)
+            return 1
     else:
         print("No asset file provided — using embedded demo data")
 
     auditor = CSPMAuditor(assets)
     violations = auditor.run()
 
-    if args.output:
-        auditor.export_csv(args.output)
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    output = args.output or os.path.join(base_dir, "..", "reports", "cl8-cspm")
+    parent = os.path.dirname(os.path.abspath(output))
+    os.makedirs(parent, exist_ok=True)
+    csv_path = output if output.endswith(".csv") else output + ".csv"
+    auditor.export_csv(csv_path)
+
+    counts = defaultdict(int)
+    for v in violations:
+        counts[v["severity"]] += 1
+    report = {
+        "tool": "CL8-MultiCloudCSPM",
+        "mode": "assets" if args.assets else "embedded-demo",
+        "asset_count": len(auditor.assets),
+        "violation_count": len(violations),
+        "critical_count": counts["CRITICAL"],
+        "summary": dict(counts),
+        "violations": violations
+    }
+    json_path = output[:-4] + ".json" if output.endswith(".csv") else output + ".json"
+    if json_path == csv_path:
+        json_path = output + ".json"
+    with open(json_path, "w") as f:
+        json.dump(report, f, indent=2, sort_keys=True)
+    print(f"\n  JSON report saved to: {json_path}")
 
     print("\nDone.")
+    if args.exit_code_on_findings and report["critical_count"] > 0:
+        return 2
     return 0
 
 

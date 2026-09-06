@@ -34,17 +34,45 @@ python3 cspm.py
 ## Usage
 
 ```bash
-# Run offline demo with embedded sample data
-python3 cspm.py
+# Run offline demo with embedded sample data (no assets, exit 0)
+python3 firmware/cspm.py
 
-# Audit a custom asset inventory
-python3 cspm.py --assets cloud_assets.json
+# Audit the bundled asset inventory fixture (offline)
+python3 firmware/cspm.py --assets fixtures/assets.json
 
-# Export violations to CSV
-python3 cspm.py --assets cloud_assets.json --output report.csv
+# Export violations (CSV + JSON) to a specific base path
+python3 firmware/cspm.py --assets fixtures/assets.json --output reports/cl8-cspm
+
+# CI-friendly: exit 2 when CRITICAL violations exist
+python3 firmware/cspm.py --assets fixtures/assets.json --exit-code-on-findings; echo $?
 ```
 
-## Example Output
+## Exit Codes
+
+- `0` — completed cleanly (or demo finished without explicit CRITICAL gate)
+- `1` — error (unreadable/missing asset inventory)
+- `2` — CRITICAL violations present with `--exit-code-on-findings`
+
+## Live Lab Test Plan
+
+Runs entirely offline on the bundled fixture `fixtures/assets.json` — no cloud account, no credentials, no network.
+
+1. **Demo**: `python3 firmware/cspm.py` — no-arg mode uses embedded demo data and exits `0`.
+2. **Fixture run**: `python3 firmware/cspm.py --assets fixtures/assets.json` — produce CRITICAL findings (PUB-001 public storage, SQL-001 firewall allow-all), HIGH (ENC-001, IAM-001/002, SQL-002), MEDIUM (LOG-001, VER-001, IAM-003, NET-001).
+3. **Reports**: verify `reports/cl8-cspm.csv` and `reports/cl8-cspm.json` — counts match, JSON has `violation_count`, `critical_count`, `summary`.
+4. **CI exit code**: `--exit-code-on-findings` returns `2`.
+5. **Unit tests**: `python3 -m unittest discover -s tests -v` — all pass (covers rule engine, fixture, embedded demo, compliant-asset case).
+
+## Metrics
+
+- Real detection paths exercised offline: all 11 `POLICY_RULES` against multi-cloud assets (AWS/GCP/Azure)
+- 8 unit tests cover the rule engine on the fixture and embedded demo
+- Compliance scoring with A–F grades per framework plus overall score
+- Every violation carries `rule_id`, `rule_name`, `severity`, `provider`, `type`, `asset`
+- Exit-code contract: `0` clean / `1` error / `2` CRITICAL findings (with `--exit-code-on-findings`)
+- Zero third-party dependencies; offline modes require no cloud access
+
+## IMPORTANT: Read before use.
 
 ```
   Assets loaded: 10

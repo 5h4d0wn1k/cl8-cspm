@@ -1,0 +1,57 @@
+[
+  {
+    "provider": "aws", "type": "s3", "id": "1920-2-1-public-bucket",
+    "config": {
+      "public_access": true, "encryption": false, "versioning": false,
+      "logging": false, "mfa_delete": false, "region": "us-east-1"
+    },
+    "tags": {"env": "prod", "team": "data"}
+  },
+  {
+    "provider": "aws", "type": "s3", "id": "1920-2-2-internal-reports",
+    "config": {
+      "public_access": false, "encryption": true, "versioning": true,
+      "logging": true, "mfa_delete": true, "region": "us-east-1"
+    },
+    "tags": {"env": "prod", "team": "finance"}
+  },
+  {
+    "provider": "aws", "type": "iam", "id": "1920-2-3-service-account",
+    "config": {
+      "mfa": false, "access_key_age_days": 200,
+      "inline_policy_resource": "*", "console_access": true
+    },
+    "tags": {"env": "prod", "team": "platform"}
+  },
+  {
+    "provider": "gcp", "type": "gcs", "id": "1920-2-4-open-bucket",
+    "config": {
+      "public_access": true, "encryption": false, "versioning": false,
+      "logging": false, "location": "us-central1"
+    },
+    "tags": {"env": "staging", "team": "ml"}
+  },
+  {
+    "provider": "gcp", "type": "iam", "id": "1920-2-5-sa-creator",
+    "config": {
+      "roles": ["roles/owner"], "mfa": false, "key_age_days": 150
+    },
+    "tags": {"env": "prod", "team": "admin"}
+  },
+  {
+    "provider": "azure", "type": "storage", "id": "1920-2-6-diagaccount",
+    "config": {
+      "public_access": false, "encryption": true, "versioning": false,
+      "logging": true, "secure_transfer": false, "location": "eastus"
+    },
+    "tags": {"env": "prod", "team": "ops"}
+  },
+  {
+    "provider": "azure", "type": "sql", "id": "1920-2-7-prod-sql",
+    "config": {
+      "encryption": true, "auditing": false, "tls_version": "1.0",
+      "firewall_allow_all": true, "location": "eastus"
+    },
+    "tags": {"env": "prod", "team": "data"}
+  }
+]
